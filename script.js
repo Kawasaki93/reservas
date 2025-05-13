@@ -218,66 +218,55 @@ function editarReserva(id) {
 function mostrarAgenda() {
     listaAgenda.innerHTML = '';
     
-    // Obtener clientes únicos de las reservas
-    const clientes = new Map();
-    reservas.forEach(reserva => {
-        if (!clientes.has(reserva.nombre)) {
-            clientes.set(reserva.nombre, {
-                nombre: reserva.nombre,
-                telefono: reserva.telefono,
-                observaciones: reserva.notas || '',
-                ultimaReserva: new Date(reserva.fechaEntrada)
+    // Cargar clientes desde Firebase
+    clientesRef.once('value')
+        .then((snapshot) => {
+            const clientes = snapshot.val() || {};
+            const clientesArray = Object.values(clientes);
+
+            // Filtrar por búsqueda si existe
+            const busqueda = buscarCliente.value.toLowerCase();
+            const clientesFiltrados = busqueda 
+                ? clientesArray.filter(cliente => 
+                    cliente.nombre.toLowerCase().includes(busqueda) ||
+                    cliente.telefono.includes(busqueda))
+                : clientesArray;
+
+            // Ordenar por nombre
+            clientesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            // Mostrar clientes
+            clientesFiltrados.forEach(cliente => {
+                const clienteElement = document.createElement('div');
+                clienteElement.className = 'cliente-card';
+                clienteElement.innerHTML = `
+                    <div class="cliente-header">
+                        <span class="cliente-nombre">${cliente.nombre}</span>
+                        <a href="tel:${cliente.telefono}" class="cliente-telefono">
+                            📞 ${cliente.telefono}
+                        </a>
+                    </div>
+                    ${cliente.observaciones ? `
+                        <div class="cliente-observaciones">
+                            📝 ${cliente.observaciones}
+                        </div>
+                    ` : ''}
+                    <div class="cliente-acciones">
+                        <button onclick="crearReservaDesdeAgenda('${cliente.nombre}', '${cliente.telefono}')" class="btn-secondary">
+                            Nueva Reserva
+                        </button>
+                        <button onclick="editarCliente('${cliente.id}')" class="btn-secondary">
+                            Editar
+                        </button>
+                    </div>
+                `;
+                listaAgenda.appendChild(clienteElement);
             });
-        } else {
-            const cliente = clientes.get(reserva.nombre);
-            const fechaReserva = new Date(reserva.fechaEntrada);
-            if (fechaReserva > cliente.ultimaReserva) {
-                cliente.ultimaReserva = fechaReserva;
-                cliente.observaciones = reserva.notas || cliente.observaciones;
-            }
-        }
-    });
-
-    // Convertir a array y ordenar por nombre
-    const clientesArray = Array.from(clientes.values()).sort((a, b) => 
-        a.nombre.localeCompare(b.nombre)
-    );
-
-    // Filtrar por búsqueda si existe
-    const busqueda = buscarCliente.value.toLowerCase();
-    const clientesFiltrados = busqueda 
-        ? clientesArray.filter(cliente => 
-            cliente.nombre.toLowerCase().includes(busqueda) ||
-            cliente.telefono.includes(busqueda))
-        : clientesArray;
-
-    // Mostrar clientes
-    clientesFiltrados.forEach(cliente => {
-        const clienteElement = document.createElement('div');
-        clienteElement.className = 'cliente-card';
-        clienteElement.innerHTML = `
-            <div class="cliente-header">
-                <span class="cliente-nombre">${cliente.nombre}</span>
-                <a href="tel:${cliente.telefono}" class="cliente-telefono">
-                    📞 ${cliente.telefono}
-                </a>
-            </div>
-            ${cliente.observaciones ? `
-                <div class="cliente-observaciones">
-                    📝 ${cliente.observaciones}
-                </div>
-            ` : ''}
-            <div class="cliente-acciones">
-                <button onclick="crearReservaDesdeAgenda('${cliente.nombre}', '${cliente.telefono}')" class="btn-secondary">
-                    Nueva Reserva
-                </button>
-                <button onclick="editarCliente('${cliente.nombre}')" class="btn-secondary">
-                    Editar
-                </button>
-            </div>
-        `;
-        listaAgenda.appendChild(clienteElement);
-    });
+        })
+        .catch(error => {
+            console.error('Error al cargar clientes:', error);
+            mostrarNotificacion('Error al cargar los clientes');
+        });
 }
 
 // Función para crear una reserva desde la agenda
@@ -293,21 +282,26 @@ function crearReservaDesdeAgenda(nombre, telefono) {
 }
 
 // Función para editar cliente
-function editarCliente(nombre) {
-    const cliente = Array.from(new Map(reservas.map(r => [r.nombre, r])).values())
-        .find(r => r.nombre === nombre);
-    
-    if (cliente) {
-        document.getElementById('nombre').value = cliente.nombre;
-        document.getElementById('telefono').value = cliente.telefono;
-        document.getElementById('notas').value = cliente.notas || '';
-        
-        // Cambiar a la vista de nueva reserva
-        document.querySelector('[data-view="nueva"]').click();
-        
-        // Scroll al formulario
-        document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
-    }
+function editarCliente(id) {
+    clientesRef.child(id).once('value')
+        .then((snapshot) => {
+            const cliente = snapshot.val();
+            if (cliente) {
+                document.getElementById('nombre').value = cliente.nombre;
+                document.getElementById('telefono').value = cliente.telefono;
+                document.getElementById('notas').value = cliente.observaciones || '';
+                
+                // Cambiar a la vista de nueva reserva
+                document.querySelector('[data-view="nueva"]').click();
+                
+                // Scroll al formulario
+                document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar cliente:', error);
+            mostrarNotificacion('Error al cargar el cliente');
+        });
 }
 
 // Función para cambiar de vista
@@ -468,24 +462,42 @@ function guardarNuevoCliente(e) {
     const nombre = document.getElementById('nombreCliente').value;
     const telefono = document.getElementById('telefonoCliente').value;
     
-    // Crear una reserva vacía para el cliente
-    const reserva = {
-        id: Date.now(),
+    // Crear un nuevo cliente
+    const cliente = {
+        id: Date.now().toString(),
         nombre,
         telefono,
-        fechaEntrada: obtenerFechaActual(),
-        fechaSalida: obtenerFechaActual(),
-        numHamacas: 1,
-        zona: 'disponible',
-        notas: '',
         fechaCreacion: new Date().toISOString()
     };
     
-    reservas.push(reserva);
-    guardarReservas();
-    mostrarAgenda();
-    cerrarModal();
-    mostrarNotificacion('Cliente agregado con éxito');
+    // Guardar en Firebase
+    clientesRef.child(cliente.id).set(cliente)
+        .then(() => {
+            // Crear una reserva vacía para el cliente
+            const reserva = {
+                id: Date.now().toString(),
+                nombre,
+                telefono,
+                fechaEntrada: obtenerFechaActual(),
+                fechaSalida: obtenerFechaActual(),
+                numHamacas: 1,
+                zona: 'disponible',
+                notas: '',
+                fechaCreacion: new Date().toISOString()
+            };
+            
+            // Guardar la reserva en Firebase
+            return reservasRef.child(reserva.id).set(reserva);
+        })
+        .then(() => {
+            mostrarAgenda();
+            cerrarModal();
+            mostrarNotificacion('Cliente agregado con éxito');
+        })
+        .catch(error => {
+            console.error('Error al guardar cliente:', error);
+            mostrarNotificacion('Error al guardar el cliente');
+        });
 }
 
 // Event Listeners para el modal

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reservas Hamacas</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+</head>
+<body>
+    <header>
+        <h1>Reservas Hamacas</h1>
+    </header>
+
+    <main>
+        <section class="reserva-form">
+            <h2>Nueva Reserva</h2>
+            <form id="reservaForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre del Cliente:</label>
+                    <input type="text" id="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="numHamacas">Número de Hamacas:</label>
+                    <input type="number" id="numHamacas" min="1" max="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefono">Teléfono:</label>
+                    <input type="tel" id="telefono" required>
+                </div>
+                <div class="form-group">
+                    <label for="fechaEntrada">Fecha de Entrada:</label>
+                    <input type="date" id="fechaEntrada" required>
+                </div>
+                <div class="form-group">
+                    <label for="fechaSalida">Fecha de Salida:</label>
+                    <input type="date" id="fechaSalida" required>
+                </div>
+                <div class="form-group">
+                    <label>Zona Preferida:</label>
+                    <div class="zona-selector">
+                        <button type="button" class="zona-btn" data-zona="disponible">Disponible</button>
+                        <button type="button" class="zona-btn" data-zona="primera">Primera Fila</button>
+                        <button type="button" class="zona-btn" data-zona="medio">Medio</button>
+                        <button type="button" class="zona-btn" data-zona="lateral-libre">Lateral Zona Libre</button>
+                        <button type="button" class="zona-btn" data-zona="lateral-miguel">Lateral Playa Miguel</button>
+                        <button type="button" class="zona-btn" data-zona="arriba">Arriba</button>
+                    </div>
+                    <input type="hidden" id="zonaSeleccionada" required>
+                </div>
+                <div class="form-group">
+                    <label for="notas">Notas Adicionales:</label>
+                    <textarea id="notas" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Crear Reserva</button>
+            </form>
+        </section>
+
+        <section class="reservas-lista">
+            <div class="filtros">
+                <select id="filtroZona">
+                    <option value="todas">Todas las zonas</option>
+                    <option value="disponible">Disponible</option>
+                    <option value="primera">Primera Fila</option>
+                    <option value="medio">Medio</option>
+                    <option value="lateral-libre">Lateral Zona Libre</option>
+                    <option value="lateral-miguel">Lateral Playa Miguel</option>
+                    <option value="arriba">Arriba</option>
+                </select>
+                <input type="date" id="filtroFecha">
+            </div>
+            <div id="listaReservas"></div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-view="nueva">Nueva Reserva</button>
+        <button class="nav-btn" data-view="lista">Reservas</button>
+        <button class="nav-btn" data-view="agenda">Agenda</button>
+    </nav>
+
+    <section class="agenda-section" style="display: none;">
+        <div class="agenda-header">
+            <h2>Agenda de Clientes</h2>
+            <div class="agenda-search">
+                <input type="text" id="buscarCliente" placeholder="Buscar cliente...">
+            </div>
+        </div>
+        <div class="agenda-list" id="listaAgenda"></div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html> 

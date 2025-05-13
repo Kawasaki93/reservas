@@ -1,0 +1,329 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --text-color: #333;
+    --background-color: #f5f5f5;
+    --card-background: #ffffff;
+    --border-radius: 12px;
+    --spacing: 1rem;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    padding-bottom: 70px; /* Espacio para la navegación inferior */
+}
+
+header {
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+main {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: var(--spacing);
+}
+
+.reserva-form {
+    background-color: var(--card-background);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: var(--spacing);
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid #ddd;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--secondary-color);
+    outline: none;
+}
+
+.zona-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.zona-btn {
+    background-color: #f8f9fa;
+    border: 2px solid #ddd;
+    padding: 0.8rem;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.zona-btn.selected {
+    background-color: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.btn-primary {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 1rem;
+    border: none;
+    border-radius: var(--border-radius);
+    width: 100%;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.reservas-lista {
+    background-color: var(--card-background);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filtros {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.filtros select, .filtros input {
+    flex: 1;
+}
+
+.reserva-item {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.8rem;
+    border-left: 4px solid var(--secondary-color);
+}
+
+.reserva-item h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--card-background);
+    display: flex;
+    justify-content: space-around;
+    padding: 0.8rem;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.nav-btn.active {
+    color: var(--secondary-color);
+}
+
+/* Animaciones */
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.reserva-item {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Estilos para modo oscuro */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: #f5f5f5;
+        --background-color: #1a1a1a;
+        --card-background: #2d2d2d;
+    }
+
+    input, select, textarea {
+        background-color: #3d3d3d;
+        color: white;
+        border-color: #4d4d4d;
+    }
+
+    .zona-btn {
+        background-color: #3d3d3d;
+        color: white;
+        border-color: #4d4d4d;
+    }
+
+    .reserva-item {
+        background-color: #3d3d3d;
+    }
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 0 0.5rem;
+    }
+    
+    .reserva-form, .reservas-lista {
+        padding: 1rem;
+    }
+}
+
+/* Estilos para la Agenda */
+.agenda-section {
+    background-color: var(--card-background);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: var(--spacing);
+}
+
+.agenda-header {
+    margin-bottom: 1.5rem;
+}
+
+.agenda-header h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.agenda-search {
+    position: relative;
+}
+
+.agenda-search input {
+    padding-left: 2.5rem;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>');
+    background-repeat: no-repeat;
+    background-position: 0.8rem center;
+    background-size: 1.2rem;
+}
+
+.agenda-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cliente-card {
+    background-color: var(--card-background);
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cliente-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.cliente-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.cliente-nombre {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.cliente-telefono {
+    color: var(--secondary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cliente-telefono a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.cliente-observaciones {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.cliente-acciones {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+
+.cliente-acciones button {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+/* Modo oscuro para la agenda */
+@media (prefers-color-scheme: dark) {
+    .cliente-card {
+        border-color: #4d4d4d;
+    }
+
+    .cliente-observaciones {
+        border-top-color: #4d4d4d;
+        color: #ccc;
+    }
+} 

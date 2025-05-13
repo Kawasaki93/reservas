@@ -30,6 +30,15 @@
                     <label for="telefono">Teléfono:</label>
                     <input type="tel" id="telefono" required>
                 </div>
+                <div class="form-group vip-toggle">
+                    <label class="toggle-label">
+                        <span>Cliente V.I.P</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="vipCliente">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
                 <div class="form-group">
                     <label for="fechaEntrada">Fecha de Entrada:</label>
                     <input type="date" id="fechaEntrada" required>
@@ -60,16 +69,11 @@
 
         <section class="reservas-lista">
             <div class="filtros">
-                <select id="filtroZona">
-                    <option value="todas">Todas las zonas</option>
-                    <option value="disponible">Disponible</option>
-                    <option value="primera">Primera Fila</option>
-                    <option value="medio">Medio</option>
-                    <option value="lateral-libre">Lateral Zona Libre</option>
-                    <option value="lateral-miguel">Lateral Playa Miguel</option>
-                    <option value="arriba">Arriba</option>
-                </select>
-                <input type="date" id="filtroFecha">
+                <div class="filtro-fecha-container">
+                    <button id="fechaAnterior" class="btn-fecha">&lt;</button>
+                    <input type="date" id="filtroFecha">
+                    <button id="fechaPosterior" class="btn-fecha">&gt;</button>
+                </div>
             </div>
             <div id="listaReservas"></div>
         </section>
@@ -83,13 +87,37 @@
 
     <section class="agenda-section" style="display: none;">
         <div class="agenda-header">
-            <h2>Agenda de Clientes</h2>
+            <div class="agenda-header-top">
+                <h2>Agenda de Clientes</h2>
+                <button id="nuevoClienteBtn" class="btn-add">+</button>
+            </div>
             <div class="agenda-search">
                 <input type="text" id="buscarCliente" placeholder="Buscar cliente...">
             </div>
         </div>
         <div class="agenda-list" id="listaAgenda"></div>
     </section>
+
+    <!-- Modal de nuevo cliente -->
+    <div id="modalNuevoCliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nuevo Cliente</h2>
+                <button class="btn-close">&times;</button>
+            </div>
+            <form id="formNuevoCliente">
+                <div class="form-group">
+                    <label for="nombreCliente">Nombre:</label>
+                    <input type="text" id="nombreCliente" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefonoCliente">Teléfono:</label>
+                    <input type="tel" id="telefonoCliente" required>
+                </div>
+                <button type="submit" class="btn-primary">Guardar Cliente</button>
+            </form>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

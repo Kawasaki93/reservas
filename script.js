@@ -6,13 +6,19 @@ const reservaForm = document.getElementById('reservaForm');
 const listaReservas = document.getElementById('listaReservas');
 const zonaBtns = document.querySelectorAll('.zona-btn');
 const zonaSeleccionada = document.getElementById('zonaSeleccionada');
-const filtroZona = document.getElementById('filtroZona');
 const filtroFecha = document.getElementById('filtroFecha');
 const navBtns = document.querySelectorAll('.nav-btn');
+const fechaAnterior = document.getElementById('fechaAnterior');
+const fechaPosterior = document.getElementById('fechaPosterior');
 
 // Elementos del DOM para la agenda
 const listaAgenda = document.getElementById('listaAgenda');
 const buscarCliente = document.getElementById('buscarCliente');
+
+// Elementos del DOM para el modal
+const modalNuevoCliente = document.getElementById('modalNuevoCliente');
+const formNuevoCliente = document.getElementById('formNuevoCliente');
+const btnCloseModal = document.querySelector('.btn-close');
 
 // Función para formatear la fecha
 function formatearFecha(fecha) {
@@ -51,6 +57,7 @@ function crearReserva(e) {
     const numHamacas = document.getElementById('numHamacas').value;
     const zona = zonaSeleccionada.value;
     const notas = document.getElementById('notas').value;
+    const vip = document.getElementById('vipCliente').checked;
 
     const reserva = {
         id: Date.now(),
@@ -61,6 +68,7 @@ function crearReserva(e) {
         numHamacas,
         zona,
         notas,
+        vip,
         fechaCreacion: new Date().toISOString()
     };
 
@@ -70,6 +78,7 @@ function crearReserva(e) {
     reservaForm.reset();
     zonaBtns.forEach(btn => btn.classList.remove('selected'));
     zonaSeleccionada.value = '';
+    document.getElementById('vipCliente').checked = false;
 
     // Mostrar notificación
     mostrarNotificacion('Reserva creada con éxito');
@@ -108,17 +117,13 @@ function mostrarReservas() {
 
     let reservasFiltradas = [...reservas];
 
-    // Aplicar filtros
-    if (filtroZona.value !== 'todas') {
-        reservasFiltradas = reservasFiltradas.filter(r => r.zona === filtroZona.value);
-    }
-
     // Si no hay fecha seleccionada, usar la fecha actual
     const fechaFiltro = filtroFecha.value || obtenerFechaActual();
+    const fechaFiltroDate = new Date(fechaFiltro);
+    
     reservasFiltradas = reservasFiltradas.filter(r => {
         const fechaEntrada = new Date(r.fechaEntrada);
         const fechaSalida = new Date(r.fechaSalida);
-        const fechaFiltroDate = new Date(fechaFiltro);
         return fechaFiltroDate >= fechaEntrada && fechaFiltroDate <= fechaSalida;
     });
 
@@ -127,22 +132,39 @@ function mostrarReservas() {
 
     reservasFiltradas.forEach(reserva => {
         const duracion = calcularDuracion(reserva.fechaEntrada, reserva.fechaSalida);
+        const fechaSalida = new Date(reserva.fechaSalida);
+        const esFechaSalida = fechaSalida.toISOString().split('T')[0] === fechaFiltro && !reserva.notificacionSalidaEliminada;
+        
         const reservaElement = document.createElement('div');
-        reservaElement.className = 'reserva-item';
-        reservaElement.innerHTML = `
-            <h3>${reserva.nombre}</h3>
-            <p>📞 ${reserva.telefono}</p>
-            <p>📅 Entrada: ${formatearFecha(reserva.fechaEntrada)}</p>
-            <p>📅 Salida: ${formatearFecha(reserva.fechaSalida)}</p>
-            <p>⏱️ Duración: ${duracion} días</p>
-            <p>🪑 Hamacas: ${reserva.numHamacas}</p>
-            <p>📍 Zona: ${reserva.zona}</p>
-            ${reserva.notas ? `<p>📝 Notas: ${reserva.notas}</p>` : ''}
-            <div class="reserva-actions">
-                <button onclick="editarReserva(${reserva.id})" class="btn-secondary">Editar</button>
-                <button onclick="eliminarReserva(${reserva.id})" class="btn-danger">Eliminar</button>
-            </div>
-        `;
+        reservaElement.className = `reserva-item ${esFechaSalida ? 'reserva-salida' : ''}`;
+        
+        let contenidoHTML = '';
+        
+        if (esFechaSalida) {
+            contenidoHTML = `
+                <div class="aviso-salida">
+                    <span class="aviso-texto">⚠️ ${reserva.nombre}</span>
+                    <button onclick="eliminarNotificacionSalida(${reserva.id})" class="btn-cerrar-notificacion">&times;</button>
+                </div>
+            `;
+        } else {
+            contenidoHTML = `
+                <h3>${reserva.nombre}</h3>
+                <p>📞 ${reserva.telefono}</p>
+                <p>📅 Entrada: ${formatearFecha(reserva.fechaEntrada)}</p>
+                <p>📅 Salida: ${formatearFecha(reserva.fechaSalida)}</p>
+                <p>⏱️ Duración: ${duracion} días</p>
+                <p>🪑 Hamacas: ${reserva.numHamacas}</p>
+                <p>📍 Zona: ${reserva.zona}</p>
+                ${reserva.notas ? `<p>📝 Notas: ${reserva.notas}</p>` : ''}
+                <div class="reserva-actions">
+                    <button onclick="editarReserva(${reserva.id})" class="btn-secondary">Editar</button>
+                    <button onclick="eliminarReserva(${reserva.id})" class="btn-danger">Eliminar</button>
+                </div>
+            `;
+        }
+
+        reservaElement.innerHTML = contenidoHTML;
         listaReservas.appendChild(reservaElement);
     });
 }
@@ -312,15 +334,40 @@ function cambiarVista(e) {
     }
 }
 
+// Función para cambiar la fecha
+function cambiarFecha(dias) {
+    const fechaActual = new Date(filtroFecha.value);
+    fechaActual.setDate(fechaActual.getDate() + dias);
+    filtroFecha.value = fechaActual.toISOString().split('T')[0];
+    mostrarReservas();
+}
+
 // Event Listeners
 reservaForm.addEventListener('submit', crearReserva);
 zonaBtns.forEach(btn => btn.addEventListener('click', seleccionarZona));
-filtroZona.addEventListener('change', mostrarReservas);
 filtroFecha.addEventListener('change', mostrarReservas);
 navBtns.forEach(btn => btn.addEventListener('click', cambiarVista));
 
+// Event listeners para los botones de fecha
+fechaAnterior.addEventListener('click', () => cambiarFecha(-1));
+fechaPosterior.addEventListener('click', () => cambiarFecha(1));
+
 // Event Listeners adicionales
 buscarCliente.addEventListener('input', mostrarAgenda);
+
+// Event listener para el botón de nuevo cliente
+document.getElementById('nuevoClienteBtn').addEventListener('click', () => {
+    // Limpiar el formulario
+    reservaForm.reset();
+    zonaBtns.forEach(btn => btn.classList.remove('selected'));
+    zonaSeleccionada.value = '';
+    
+    // Cambiar a la vista de nueva reserva
+    document.querySelector('[data-view="nueva"]').click();
+    
+    // Scroll al formulario
+    document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
+});
 
 // Modificar el event listener de DOMContentLoaded
 document.addEventListener('DOMContentLoaded', inicializarApp);
@@ -341,4 +388,65 @@ if ('serviceWorker' in navigator) {
                 console.log('Error al registrar ServiceWorker:', error);
             });
     });
+}
+
+// Función para abrir el modal
+function abrirModal() {
+    modalNuevoCliente.style.display = 'block';
+    document.getElementById('nombreCliente').focus();
+}
+
+// Función para cerrar el modal
+function cerrarModal() {
+    modalNuevoCliente.style.display = 'none';
+    formNuevoCliente.reset();
+}
+
+// Función para guardar nuevo cliente
+function guardarNuevoCliente(e) {
+    e.preventDefault();
+    
+    const nombre = document.getElementById('nombreCliente').value;
+    const telefono = document.getElementById('telefonoCliente').value;
+    
+    // Crear una reserva vacía para el cliente
+    const reserva = {
+        id: Date.now(),
+        nombre,
+        telefono,
+        fechaEntrada: obtenerFechaActual(),
+        fechaSalida: obtenerFechaActual(),
+        numHamacas: 1,
+        zona: 'disponible',
+        notas: '',
+        fechaCreacion: new Date().toISOString()
+    };
+    
+    reservas.push(reserva);
+    guardarReservas();
+    mostrarAgenda();
+    cerrarModal();
+    mostrarNotificacion('Cliente agregado con éxito');
+}
+
+// Event Listeners para el modal
+document.getElementById('nuevoClienteBtn').addEventListener('click', abrirModal);
+btnCloseModal.addEventListener('click', cerrarModal);
+formNuevoCliente.addEventListener('submit', guardarNuevoCliente);
+
+// Cerrar modal al hacer clic fuera de él
+window.addEventListener('click', (e) => {
+    if (e.target === modalNuevoCliente) {
+        cerrarModal();
+    }
+});
+
+// Función para eliminar notificación de salida
+function eliminarNotificacionSalida(id) {
+    const reserva = reservas.find(r => r.id === id);
+    if (reserva) {
+        reserva.notificacionSalidaEliminada = true;
+        guardarReservas();
+        mostrarReservas();
+    }
 } 

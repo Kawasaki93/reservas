@@ -152,17 +152,24 @@ function mostrarReservas() {
             `;
         } else {
             contenidoHTML = `
-                <h3>${reserva.nombre}</h3>
-                <p>📞 ${reserva.telefono}</p>
-                <p>📅 Entrada: ${formatearFecha(reserva.fechaEntrada)}</p>
-                <p>📅 Salida: ${formatearFecha(reserva.fechaSalida)}</p>
-                <p>⏱️ Duración: ${duracion} días</p>
-                <p>🪑 Hamacas: ${reserva.numHamacas}</p>
-                <p>📍 Zona: ${reserva.zona}</p>
-                ${reserva.notas ? `<p>📝 Notas: ${reserva.notas}</p>` : ''}
-                <div class="reserva-actions">
-                    <button onclick="editarReserva('${reserva.id}')" class="btn-secondary">Editar</button>
-                    <button onclick="eliminarReserva('${reserva.id}')" class="btn-danger">Eliminar</button>
+                <div class="reserva-header" onclick="toggleReservaDetalles(this)">
+                    <div class="reserva-info-basica">
+                        <h3>${reserva.nombre}</h3>
+                        <p>🪑 Hamacas: ${reserva.numHamacas}</p>
+                        <p>📍 Zona: ${reserva.zona}</p>
+                    </div>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="reserva-detalles">
+                    <p>📞 ${reserva.telefono}</p>
+                    <p>📅 Entrada: ${formatearFecha(reserva.fechaEntrada)}</p>
+                    <p>📅 Salida: ${formatearFecha(reserva.fechaSalida)}</p>
+                    <p>⏱️ Duración: ${duracion} días</p>
+                    ${reserva.notas ? `<p>📝 Notas: ${reserva.notas}</p>` : ''}
+                    <div class="reserva-actions">
+                        <button onclick="editarReserva('${reserva.id}')" class="btn-secondary">Editar</button>
+                        <button onclick="eliminarReserva('${reserva.id}')" class="btn-danger">Eliminar</button>
+                    </div>
                 </div>
             `;
         }
@@ -170,6 +177,20 @@ function mostrarReservas() {
         reservaElement.innerHTML = contenidoHTML;
         listaReservas.appendChild(reservaElement);
     });
+}
+
+// Función para alternar la visibilidad de los detalles de la reserva
+function toggleReservaDetalles(element) {
+    const detalles = element.nextElementSibling;
+    const icon = element.querySelector('.toggle-icon');
+    
+    if (detalles.style.display === 'none') {
+        detalles.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        detalles.style.display = 'none';
+        icon.textContent = '▶';
+    }
 }
 
 // Función para eliminar una reserva
@@ -188,27 +209,43 @@ function eliminarReserva(id) {
 
 // Función para editar una reserva
 function editarReserva(id) {
-    const reserva = reservas.find(r => r.id === id);
-    if (reserva) {
-        document.getElementById('nombre').value = reserva.nombre;
-        document.getElementById('telefono').value = reserva.telefono;
-        document.getElementById('fechaEntrada').value = reserva.fechaEntrada;
-        document.getElementById('fechaSalida').value = reserva.fechaSalida;
-        document.getElementById('numHamacas').value = reserva.numHamacas;
-        document.getElementById('notas').value = reserva.notas || '';
-        document.getElementById('vipCliente').checked = reserva.vip || false;
-        
-        zonaBtns.forEach(btn => {
-            btn.classList.toggle('selected', btn.dataset.zona === reserva.zona);
-        });
-        zonaSeleccionada.value = reserva.zona;
+    // Obtener la reserva desde Firebase
+    reservasRef.child(id).once('value')
+        .then((snapshot) => {
+            const reserva = snapshot.val();
+            if (reserva) {
+                // Llenar el formulario con los datos de la reserva
+                document.getElementById('nombre').value = reserva.nombre;
+                document.getElementById('telefono').value = reserva.telefono;
+                document.getElementById('fechaEntrada').value = reserva.fechaEntrada;
+                document.getElementById('fechaSalida').value = reserva.fechaSalida;
+                document.getElementById('numHamacas').value = reserva.numHamacas;
+                document.getElementById('notas').value = reserva.notas || '';
+                document.getElementById('vipCliente').checked = reserva.vip || false;
+                
+                // Seleccionar la zona correcta
+                zonaBtns.forEach(btn => {
+                    btn.classList.toggle('selected', btn.dataset.zona === reserva.zona);
+                });
+                zonaSeleccionada.value = reserva.zona;
 
-        // Eliminar la reserva actual
-        eliminarReserva(id);
-        
-        // Scroll al formulario
-        document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
-    }
+                // Eliminar la reserva actual
+                return reservasRef.child(id).remove();
+            }
+        })
+        .then(() => {
+            // Cambiar a la vista de nueva reserva
+            document.querySelector('[data-view="nueva"]').click();
+            
+            // Scroll al formulario
+            document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
+            
+            mostrarNotificacion('Reserva cargada para edición');
+        })
+        .catch(error => {
+            console.error('Error al cargar la reserva:', error);
+            mostrarNotificacion('Error al cargar la reserva para edición');
+        });
 }
 
 // Función para mostrar la agenda

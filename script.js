@@ -578,26 +578,20 @@ window.addEventListener('click', (e) => {
 
 // Función para eliminar notificación de salida
 function eliminarNotificacionSalida(id) {
-    // Actualizar la reserva en Firebase
-    reservasRef.child(id).once('value')
-        .then((snapshot) => {
-            const reserva = snapshot.val();
-            if (reserva) {
-                // Actualizar la propiedad notificacionSalidaEliminada
-                return reservasRef.child(id).update({
-                    notificacionSalidaEliminada: true
-                });
-            }
-        })
-        .then(() => {
-            // Encontrar y eliminar el elemento de notificación del DOM
-            const notificacionElement = document.querySelector(`.aviso-salida button[onclick="eliminarNotificacionSalida('${id}')"]`).closest('.reserva-item');
-            if (notificacionElement) {
-                notificacionElement.remove();
-            }
-        })
-        .catch(error => {
-            console.error('Error al eliminar notificación:', error);
-            mostrarNotificacion('Error al eliminar la notificación');
-        });
+    if (confirm('¿Estás seguro de que quieres eliminar esta reserva? Esta acción no se puede deshacer.')) {
+        // Eliminar la reserva directamente de Firebase
+        reservasRef.child(id).remove()
+            .then(() => {
+                // Encontrar y eliminar el elemento de notificación del DOM
+                const notificacionElement = document.querySelector(`.aviso-salida button[onclick="eliminarNotificacionSalida('${id}')"]`).closest('.reserva-item');
+                if (notificacionElement) {
+                    notificacionElement.remove();
+                }
+                mostrarNotificacion('Reserva eliminada con éxito');
+            })
+            .catch(error => {
+                console.error('Error al eliminar reserva:', error);
+                mostrarNotificacion('Error al eliminar la reserva');
+            });
+    }
 } 

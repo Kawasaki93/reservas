@@ -60,7 +60,7 @@ function crearReserva(e) {
     const vip = document.getElementById('vipCliente').checked;
 
     const reserva = {
-        id: Date.now(),
+        id: Date.now().toString(), // Convertir a string para Firebase
         nombre,
         telefono,
         fechaEntrada,
@@ -72,16 +72,21 @@ function crearReserva(e) {
         fechaCreacion: new Date().toISOString()
     };
 
-    reservas.push(reserva);
-    guardarReservas();
-    mostrarReservas();
-    reservaForm.reset();
-    zonaBtns.forEach(btn => btn.classList.remove('selected'));
-    zonaSeleccionada.value = '';
-    document.getElementById('vipCliente').checked = false;
-
-    // Mostrar notificación
-    mostrarNotificacion('Reserva creada con éxito');
+    // Agregar a Firebase
+    reservasRef.child(reserva.id).set(reserva)
+        .then(() => {
+            reservas.push(reserva);
+            mostrarReservas();
+            reservaForm.reset();
+            zonaBtns.forEach(btn => btn.classList.remove('selected'));
+            zonaSeleccionada.value = '';
+            document.getElementById('vipCliente').checked = false;
+            mostrarNotificacion('Reserva creada con éxito');
+        })
+        .catch(error => {
+            console.error('Error al crear reserva:', error);
+            mostrarNotificacion('Error al crear la reserva');
+        });
 }
 
 // Función para obtener la fecha actual en formato YYYY-MM-DD
@@ -90,24 +95,22 @@ function obtenerFechaActual() {
     return hoy.toISOString().split('T')[0];
 }
 
-// Función para inicializar la aplicación
-function inicializarApp() {
-    // Establecer fecha actual en el filtro
-    filtroFecha.value = obtenerFechaActual();
-    
-    // Seleccionar "Disponible" como zona predeterminada
-    zonaBtns.forEach(btn => {
-        if (btn.dataset.zona === 'disponible') {
-            btn.classList.add('selected');
-            zonaSeleccionada.value = 'disponible';
-        }
-    });
+// Función para mostrar notificaciones
+function mostrarNotificacion(mensaje) {
+    try {
+        const notificacion = document.createElement('div');
+        notificacion.className = 'notificacion';
+        notificacion.textContent = mensaje;
+        document.body.appendChild(notificacion);
 
-    // Cargar reservas guardadas
-    const reservasGuardadas = localStorage.getItem('reservas');
-    if (reservasGuardadas) {
-        reservas = JSON.parse(reservasGuardadas);
-        mostrarReservas();
+        // Asegurarse de que la notificación se elimine después de 3 segundos
+        setTimeout(() => {
+            if (notificacion && notificacion.parentNode) {
+                notificacion.remove();
+            }
+        }, 3000);
+    } catch (error) {
+        console.error('Error al mostrar notificación:', error);
     }
 }
 
@@ -172,10 +175,17 @@ function mostrarReservas() {
 // Función para eliminar una reserva
 function eliminarReserva(id) {
     if (confirm('¿Estás seguro de que quieres eliminar esta reserva?')) {
-        reservas = reservas.filter(reserva => reserva.id !== id);
-        guardarReservas();
-        mostrarReservas();
-        mostrarNotificacion('Reserva eliminada');
+        // Eliminar de Firebase
+        reservasRef.child(id).remove()
+            .then(() => {
+                reservas = reservas.filter(reserva => reserva.id !== id);
+                mostrarReservas();
+                mostrarNotificacion('Reserva eliminada');
+            })
+            .catch(error => {
+                console.error('Error al eliminar reserva:', error);
+                mostrarNotificacion('Error al eliminar la reserva');
+            });
     }
 }
 
@@ -189,6 +199,7 @@ function editarReserva(id) {
         document.getElementById('fechaSalida').value = reserva.fechaSalida;
         document.getElementById('numHamacas').value = reserva.numHamacas;
         document.getElementById('notas').value = reserva.notas || '';
+        document.getElementById('vipCliente').checked = reserva.vip || false;
         
         zonaBtns.forEach(btn => {
             btn.classList.toggle('selected', btn.dataset.zona === reserva.zona);
@@ -201,18 +212,6 @@ function editarReserva(id) {
         // Scroll al formulario
         document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
     }
-}
-
-// Función para mostrar notificaciones
-function mostrarNotificacion(mensaje) {
-    const notificacion = document.createElement('div');
-    notificacion.className = 'notificacion';
-    notificacion.textContent = mensaje;
-    document.body.appendChild(notificacion);
-
-    setTimeout(() => {
-        notificacion.remove();
-    }, 3000);
 }
 
 // Función para mostrar la agenda
@@ -369,26 +368,86 @@ document.getElementById('nuevoClienteBtn').addEventListener('click', () => {
     document.querySelector('.reserva-form').scrollIntoView({ behavior: 'smooth' });
 });
 
-// Modificar el event listener de DOMContentLoaded
-document.addEventListener('DOMContentLoaded', inicializarApp);
-
-// Guardar reservas en localStorage
-function guardarReservas() {
-    localStorage.setItem('reservas', JSON.stringify(reservas));
-}
-
 // Registrar Service Worker para PWA
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-                console.log('ServiceWorker registrado:', registration);
-            })
-            .catch(error => {
-                console.log('Error al registrar ServiceWorker:', error);
-            });
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/service-worker.js');
+            console.log('ServiceWorker registrado:', registration);
+        } catch (error) {
+            console.error('Error al registrar ServiceWorker:', error);
+        }
     });
 }
+
+// Función para guardar reservas en Firebase
+function guardarReservas() {
+    try {
+        // Guardar en Firebase
+        reservasRef.set(reservas)
+            .then(() => {
+                console.log('Reservas guardadas en Firebase');
+            })
+            .catch(error => {
+                console.error('Error al guardar en Firebase:', error);
+                mostrarNotificacion('Error al guardar los datos');
+            });
+    } catch (error) {
+        console.error('Error al guardar reservas:', error);
+        mostrarNotificacion('Error al guardar los datos');
+    }
+}
+
+// Función para cargar reservas desde Firebase
+function cargarReservas() {
+    try {
+        reservasRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                reservas = Object.values(data);
+                mostrarReservas();
+                mostrarAgenda();
+            }
+        }, (error) => {
+            console.error('Error al cargar desde Firebase:', error);
+            mostrarNotificacion('Error al cargar los datos');
+        });
+    } catch (error) {
+        console.error('Error al cargar reservas:', error);
+        mostrarNotificacion('Error al cargar los datos');
+    }
+}
+
+// Modificar la función inicializarApp
+function inicializarApp() {
+    try {
+        // Establecer fecha actual en el filtro
+        filtroFecha.value = obtenerFechaActual();
+        
+        // Seleccionar "Disponible" como zona predeterminada
+        zonaBtns.forEach(btn => {
+            if (btn.dataset.zona === 'disponible') {
+                btn.classList.add('selected');
+                zonaSeleccionada.value = 'disponible';
+            }
+        });
+
+        // Cargar reservas guardadas
+        cargarReservas();
+    } catch (error) {
+        console.error('Error al inicializar la aplicación:', error);
+        mostrarNotificacion('Error al inicializar la aplicación');
+    }
+}
+
+// Modificar el event listener de DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        inicializarApp();
+    } catch (error) {
+        console.error('Error en DOMContentLoaded:', error);
+    }
+});
 
 // Función para abrir el modal
 function abrirModal() {

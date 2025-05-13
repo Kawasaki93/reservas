@@ -146,8 +146,8 @@ function mostrarReservas() {
         if (esFechaSalida) {
             contenidoHTML = `
                 <div class="aviso-salida">
-                    <span class="aviso-texto">⚠️ ${reserva.nombre}</span>
-                    <button onclick="eliminarNotificacionSalida(${reserva.id})" class="btn-cerrar-notificacion">&times;</button>
+                    <span class="aviso-texto">⚠️ ${reserva.nombre} - Salida hoy</span>
+                    <button onclick="eliminarNotificacionSalida('${reserva.id}')" class="btn-cerrar-notificacion">&times;</button>
                 </div>
             `;
         } else {
@@ -161,8 +161,8 @@ function mostrarReservas() {
                 <p>📍 Zona: ${reserva.zona}</p>
                 ${reserva.notas ? `<p>📝 Notas: ${reserva.notas}</p>` : ''}
                 <div class="reserva-actions">
-                    <button onclick="editarReserva(${reserva.id})" class="btn-secondary">Editar</button>
-                    <button onclick="eliminarReserva(${reserva.id})" class="btn-danger">Eliminar</button>
+                    <button onclick="editarReserva('${reserva.id}')" class="btn-secondary">Editar</button>
+                    <button onclick="eliminarReserva('${reserva.id}')" class="btn-danger">Eliminar</button>
                 </div>
             `;
         }
@@ -175,11 +175,8 @@ function mostrarReservas() {
 // Función para eliminar una reserva
 function eliminarReserva(id) {
     if (confirm('¿Estás seguro de que quieres eliminar esta reserva?')) {
-        // Eliminar de Firebase
         reservasRef.child(id).remove()
             .then(() => {
-                reservas = reservas.filter(reserva => reserva.id !== id);
-                mostrarReservas();
                 mostrarNotificacion('Reserva eliminada');
             })
             .catch(error => {
@@ -258,6 +255,9 @@ function mostrarAgenda() {
                         <button onclick="editarCliente('${cliente.id}')" class="btn-secondary">
                             Editar
                         </button>
+                        <button onclick="eliminarCliente('${cliente.id}')" class="btn-danger">
+                            Eliminar
+                        </button>
                     </div>
                 `;
                 listaAgenda.appendChild(clienteElement);
@@ -302,6 +302,45 @@ function editarCliente(id) {
             console.error('Error al cargar cliente:', error);
             mostrarNotificacion('Error al cargar el cliente');
         });
+}
+
+// Función para eliminar cliente
+function eliminarCliente(id) {
+    if (confirm('¿Estás seguro de que quieres eliminar este cliente? Esta acción también eliminará todas sus reservas.')) {
+        // Primero obtener el nombre del cliente
+        clientesRef.child(id).once('value')
+            .then((snapshot) => {
+                const cliente = snapshot.val();
+                if (!cliente) throw new Error('Cliente no encontrado');
+
+                // Buscar y eliminar todas las reservas del cliente
+                return reservasRef.once('value')
+                    .then((snapshot) => {
+                        const reservas = snapshot.val() || {};
+                        const promesas = [];
+                        
+                        // Encontrar y eliminar todas las reservas del cliente
+                        Object.entries(reservas).forEach(([reservaId, reserva]) => {
+                            if (reserva.nombre === cliente.nombre) {
+                                promesas.push(reservasRef.child(reservaId).remove());
+                            }
+                        });
+                        
+                        return Promise.all(promesas);
+                    })
+                    .then(() => {
+                        // Después eliminar el cliente
+                        return clientesRef.child(id).remove();
+                    });
+            })
+            .then(() => {
+                mostrarNotificacion('Cliente eliminado con éxito');
+            })
+            .catch(error => {
+                console.error('Error al eliminar cliente:', error);
+                mostrarNotificacion('Error al eliminar el cliente');
+            });
+    }
 }
 
 // Función para cambiar de vista
@@ -412,6 +451,31 @@ function cargarReservas() {
     }
 }
 
+// Función para inicializar los listeners de Firebase
+function inicializarFirebaseListeners() {
+    // Listener para reservas
+    reservasRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            reservas = Object.values(data);
+            mostrarReservas();
+        } else {
+            reservas = [];
+            mostrarReservas();
+        }
+    });
+
+    // Listener para clientes
+    clientesRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            mostrarAgenda();
+        } else {
+            listaAgenda.innerHTML = '';
+        }
+    });
+}
+
 // Modificar la función inicializarApp
 function inicializarApp() {
     try {
@@ -426,8 +490,8 @@ function inicializarApp() {
             }
         });
 
-        // Cargar reservas guardadas
-        cargarReservas();
+        // Inicializar listeners de Firebase
+        inicializarFirebaseListeners();
     } catch (error) {
         console.error('Error al inicializar la aplicación:', error);
         mostrarNotificacion('Error al inicializar la aplicación');
@@ -514,10 +578,26 @@ window.addEventListener('click', (e) => {
 
 // Función para eliminar notificación de salida
 function eliminarNotificacionSalida(id) {
-    const reserva = reservas.find(r => r.id === id);
-    if (reserva) {
-        reserva.notificacionSalidaEliminada = true;
-        guardarReservas();
-        mostrarReservas();
-    }
+    // Actualizar la reserva en Firebase
+    reservasRef.child(id).once('value')
+        .then((snapshot) => {
+            const reserva = snapshot.val();
+            if (reserva) {
+                // Actualizar la propiedad notificacionSalidaEliminada
+                return reservasRef.child(id).update({
+                    notificacionSalidaEliminada: true
+                });
+            }
+        })
+        .then(() => {
+            // Encontrar y eliminar el elemento de notificación del DOM
+            const notificacionElement = document.querySelector(`.aviso-salida button[onclick="eliminarNotificacionSalida('${id}')"]`).closest('.reserva-item');
+            if (notificacionElement) {
+                notificacionElement.remove();
+            }
+        })
+        .catch(error => {
+            console.error('Error al eliminar notificación:', error);
+            mostrarNotificacion('Error al eliminar la notificación');
+        });
 } 
